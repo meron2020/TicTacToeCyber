@@ -1,6 +1,7 @@
 import socket
 import random
 from game_algorithm import Game
+import pickle
 
 
 class ServerPlayer:
@@ -27,6 +28,7 @@ class Server:
         self.game = Game()
         self.accept_client_connection()
         self.game_started = False
+        self.start_game()
         if self.game_started:
             self.run_game()
 
@@ -36,6 +38,7 @@ class Server:
             request_type = self.client_socket.recv(10).decode()
             if request_type == "Start Game":
                 self.game_started = True
+                self.send_board_status()
                 return
             continue
 
@@ -46,17 +49,19 @@ class Server:
 
     # Sends user the boards current position.
     def send_board_status(self):
-        self.client_socket.send("Game:")
-        self.client_socket.send(self.game.board)
+        self.client_socket.send("Game:".encode())
+        message = pickle.dumps(self.game.board)
+        self.client_socket.send((str(len(message)).encode()))
+        self.client_socket.send(message)
 
     # Tells user who won.
     def send_winner_message(self, winner):
-        self.client_socket.send("Game:")
-        self.client_socket.send(("Winner: " + winner).encode())
+        self.client_socket.send("Game:".encode())
+        self.client_socket.send(pickle.dumps("Winner: " + winner))
 
     # Tells user the game ended in tie.
     def send_tie_message(self):
-        self.client_socket.send("Game:")
+        self.client_socket.send("Game:".encode())
         self.client_socket.send("Tie".encode())
 
     # Function runs one turn. Player plays first, then server. Each time a player plays, the game checks if someone won.
@@ -93,9 +98,11 @@ class Server:
 
     # Function accepts client message and returns the game coordinates.
     def accept_client_response(self):
-        request_type = self.client_socket.recv(4).decode()
-        if request_type == "Game":
-            return tuple(request_type[6:])
+        while True:
+            request_type = self.client_socket.recv(4).decode()
+            if request_type == "Game":
+                return tuple(request_type[6:])
+            continue
 
 
 server = Server(8820)

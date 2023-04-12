@@ -1,13 +1,14 @@
 class Game:
     def __init__(self):
-        self.board = []
+        self.board = [[], [], []]
+        self.setup_board()
+        print(self.board)
 
     # Initializes a board.
     def setup_board(self):
         for i in range(3):
-            self.board[i] = []
             for j in range(3):
-                self.board[i][j] = 0
+                self.board[i].append(0)
 
     # Checks if there's a tie
     def check_if_tie(self):
