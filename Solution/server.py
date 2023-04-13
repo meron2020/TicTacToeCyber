@@ -10,8 +10,8 @@ class ServerPlayer:
     @classmethod
     def server_turn(cls, game):
         while True:
-            column = random.randint(0, 3)
-            row = random.randint(0, 3)
+            column = random.randint(0, 2)
+            row = random.randint(0, 2)
             selection = (row, column)
             if game.check_if_move_able(selection):
                 game.add_input(selection, "server")
@@ -57,12 +57,15 @@ class Server:
     # Tells user who won.
     def send_winner_message(self, winner):
         self.client_socket.send("Game:".encode())
-        self.client_socket.send(pickle.dumps("Winner: " + winner))
+        message = pickle.dumps("Winner:" + winner)
+        self.client_socket.send(str(len(message)).encode())
+        self.client_socket.send(message)
 
     # Tells user the game ended in tie.
     def send_tie_message(self):
-        self.client_socket.send("Game:".encode())
-        self.client_socket.send("Tie".encode())
+        message = "Game: Tie"
+        self.client_socket.send(str(len(message)).encode())
+        self.client_socket.send(message)
 
     # Function runs one turn. Player plays first, then server. Each time a player plays, the game checks if someone won.
     def turn(self):
@@ -78,6 +81,7 @@ class Server:
         if self.game.check_if_tie():
             self.send_tie_message()
             return True
+        self.send_board_status()
         return False
 
     # Functions runs looped turns until someone wins.
@@ -99,10 +103,14 @@ class Server:
     # Function accepts client message and returns the game coordinates.
     def accept_client_response(self):
         while True:
-            request_type = self.client_socket.recv(4).decode()
-            if request_type == "Game":
-                return tuple(request_type[6:])
-            continue
+            try:
+                request_length = int(self.client_socket.recv(2).decode())
+                request_type = self.client_socket.recv(request_length).decode()
+                if request_type[:4] == "Game":
+                    return tuple((int(request_type[5]), int(request_type[6])))
+                continue
+            except ValueError:
+                continue
 
 
 server = Server(8820)

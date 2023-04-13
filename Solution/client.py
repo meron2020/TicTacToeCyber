@@ -10,6 +10,7 @@ class Client:
         self.start_game()
         while True:
             self.turn()
+            continue
 
     def start_game(self):
         self.my_socket.send("Start Game".encode())
@@ -17,31 +18,36 @@ class Client:
 
     # Sends game move to server.
     def send_game_coordinates(self, coordinates):
-        message = "Game:" + str(coordinates)
+        message = "Game:" + coordinates
+        self.my_socket.send(str(len(message)).encode())
         self.my_socket.send(message.encode())
 
     def present_board(self):
-        print("  1  2  3")
+        print("\n   1  2  3")
         for i in range(len(self.board)):
             row = self.board[i]
-            completed_row = str(i + 1)
+            completed_row = str(i + 1) + " "
             for element in row:
                 if element == "user":
-                    completed_row += "  X"
+                    completed_row += " X "
                 if element == "server":
-                    completed_row += "  O"
+                    completed_row += " O "
                 if element == 0:
-                    completed_row += "  "
+                    completed_row += "   "
             print(completed_row)
 
     def get_user_choice(self):
         while True:
             try:
-                row = int(input("Row >>"))
-                column = int(input("Column >>"))
-                return tuple((row, column))
+                row = int(input("Row >>")) - 1
+                column = int(input("Column >>")) - 1
+                if row in range(3) and column in range(3):
+                    return str(row) + str(column)
+                else:
+                    print("Wrong input. Please try again...")
+                    continue
             except ValueError:
-                print("Wrong input please try again...")
+                print("Wrong input. please try again...")
                 continue
 
     # Awaits server chat response.
@@ -69,8 +75,8 @@ class Client:
     def receive_message(self):
         data = self.await_response()
         if data == "Game:":
-            self.receive_game_directions()
-        if data[:4] == "Chat:":
+            return self.receive_game_directions()
+        elif data[:4] == "Chat:":
             Client.receive_chat_message(data)
 
     # Receives updated game position.
@@ -81,7 +87,7 @@ class Client:
             if data == "Tie":
                 return "Tie"
             if data[:6] == "Winner":
-                return data[6:]
+                return data[7:]
         else:
             self.board = data
             return "No Winner"
@@ -92,7 +98,7 @@ class Client:
         self.send_game_coordinates(coordinates)
         winner = self.receive_message()
         if winner != "No Winner":
-            print(winner)
+            print("Winner: " + winner)
             exit()
 
 
