@@ -1,5 +1,5 @@
-import socket
 import pickle
+import socket
 
 
 class Client:
@@ -7,14 +7,19 @@ class Client:
         self.my_socket = socket.socket()
         self.my_socket.connect(("127.0.0.1", 8820))
         self.board = [[], [], []]
-        self.start_game()
+        self.comm_option = None
+        self.first = False
+        self.initialize_communications()
         while True:
             self.turn()
             continue
 
-    def start_game(self):
-        self.my_socket.send("Start Game".encode())
-        self.receive_message()
+    def await_response(self):
+        while True:
+            data = self.my_socket.recv(1024).decode()
+            if data != "" and data != "Received and Forwarded":
+                return data
+            continue
 
     # Sends game move to server.
     def send_game_coordinates(self, coordinates):
@@ -28,15 +33,16 @@ class Client:
             row = self.board[i]
             completed_row = str(i + 1) + " "
             for element in row:
-                if element == "user":
+                if element == "user 1":
                     completed_row += " X "
-                if element == "server":
+                if element == "user 2":
                     completed_row += " O "
                 if element == 0:
                     completed_row += "   "
             print(completed_row)
 
-    def get_user_choice(self):
+    @classmethod
+    def get_user_choice(cls):
         while True:
             try:
                 row = int(input("Row >>")) - 1
@@ -53,31 +59,32 @@ class Client:
     # Awaits server chat response.
     def await_response(self):
         while True:
-            data = self.my_socket.recv(5).decode()
+            data = self.my_socket.recv(2).decode()
             if data != "" and data != "Received and Forwarded":
                 return data
             continue
 
     # Receives chat message
-    @classmethod
-    def receive_chat_message(cls, data):
-        if data == "Client exited chat.":
-            print("\n[+] Chat ended by other client.")
-            exit(0)
+    def receive_chat_message(self):
+        while True:
+            message_length = self.my_socket.recv(2).decode()
+            message = self.my_socket.recv(int(message_length)).decode()
+            if message == "Client exited chat.":
+                print("\n[+] Chat ended by other client.")
+                exit(0)
 
-        if data == "Received and Forwarded":
-            return
-        else:
-            print("Friend: " + data)
-            return
+            if message == "Received and Forwarded":
+                return
+            else:
+                print("Friend: " + message)
+                return
 
     # Receives generic message.
     def receive_message(self):
+        self.receive_chat_message()
         data = self.await_response()
         if data == "Game:":
             return self.receive_game_directions()
-        elif data[:4] == "Chat:":
-            Client.receive_chat_message(data)
 
     # Receives updated game position.
     def receive_game_directions(self):
@@ -92,14 +99,51 @@ class Client:
             self.board = data
             return "No Winner"
 
+    def send_message(self):
+        message = input("Me >> ")
+        message_length = str(len(message))
+        if len(message_length) == 1:
+            message_length = "0" + message_length
+        self.my_socket.send(message_length.encode())
+        self.my_socket.send(message.encode())
+
+        if message == "EXIT":
+            data = self.my_socket.recv(1024).decode()
+            if data == "Confirmed":
+                self.my_socket.close()
+                exit(0)
+
     def turn(self):
+        self.receive_message()
         self.present_board()
         coordinates = self.get_user_choice()
         self.send_game_coordinates(coordinates)
-        winner = self.receive_message()
-        if winner != "No Winner":
-            print("Winner: " + winner)
-            exit()
+        self.send_message()
+
+    def await_response(self):
+        while True:
+            data = self.my_socket.recv(1024).decode()
+            if data != "" and data != "Received and Forwarded":
+                return data
+            continue
+
+    def initialize_communications(self):
+        data = self.await_response()
+        if data == "Awaiting other client.":
+            self.first = True
+            while True:
+                data = self.my_socket.recv(1024).decode()
+                if data == "Other client connected":
+                    print("[+] Chat connected.")
+                    while True:
+                        self.my_socket.send("Start Game".encode())
+                        break
+                    break
+                continue
+        elif data == "Other client connected":
+            print("[+] Chat connected.")
+
+            return
 
 
 client = Client()
