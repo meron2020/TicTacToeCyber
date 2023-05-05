@@ -33,14 +33,16 @@ class Server:
         self.first_client_socket.send(str(len(message)).encode())
         self.first_client_socket.send(message)
 
-        self.second_client_socket.send("Game:".encode())
+        self.forward_message(self.message, self.second_client_socket)
         message = pickle.dumps("Winner:" + winner)
         self.second_client_socket.send(str(len(message)).encode())
         self.second_client_socket.send(message)
 
     # Tells user the game ended in tie.
     def send_tie_message(self):
-        message = "Game: Tie"
+        message = "Tie"
+        self.forward_message(self.message, self.first_client_socket)
+        self.forward_message(self.message, self.second_client_socket)
         self.first_client_socket.send(str(len(message)).encode())
         self.first_client_socket.send(message)
 
@@ -79,6 +81,10 @@ class Server:
         self.forward_message(self.message, self.second_client_socket)
         if self.game.check_if_winner("user 1"):
             self.send_winner_message("user 1")
+            return True
+
+        if self.game.check_if_tie():
+            self.send_tie_message()
             return True
 
         self.send_board_status(self.second_client_socket)
