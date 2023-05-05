@@ -34,13 +34,15 @@ class Client:
                     completed_row += "   "
             print(completed_row)
 
-    @classmethod
-    def get_user_choice(cls):
+    def get_user_choice(self):
         while True:
             try:
                 row = int(input("Row >>")) - 1
                 column = int(input("Column >>")) - 1
                 if row in range(3) and column in range(3):
+                    if self.board[row][column] != 0:
+                        print("Wrong input. Please try again...")
+                        continue
                     return str(row) + str(column)
                 else:
                     print("Wrong input. Please try again...")
