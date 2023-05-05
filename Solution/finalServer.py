@@ -30,12 +30,14 @@ class Server:
     def send_winner_message(self, winner):
         self.forward_message(self.message, self.first_client_socket)
         message = pickle.dumps("Winner:" + winner)
-        self.first_client_socket.send(str(len(message)).encode())
+        message_length = str(len(message))
+        if len(message_length) == 1:
+            message_length = "0" + message_length
+        self.first_client_socket.send(message_length.encode())
         self.first_client_socket.send(message)
 
         self.forward_message(self.message, self.second_client_socket)
-        message = pickle.dumps("Winner:" + winner)
-        self.second_client_socket.send(str(len(message)).encode())
+        self.second_client_socket.send(message_length.encode())
         self.second_client_socket.send(message)
 
     # Tells user the game ended in tie.
@@ -78,15 +80,15 @@ class Server:
         coordinates = self.accept_client_move(self.first_client_socket)
         self.message = self.accept_client_chat(self.first_client_socket)
         self.game.add_input(coordinates, "user 1")
-        self.forward_message(self.message, self.second_client_socket)
         if self.game.check_if_winner("user 1"):
             self.send_winner_message("user 1")
             return True
 
         if self.game.check_if_tie():
-            self.send_tie_message()
+            self.send_winner_message("Tie")
             return True
 
+        self.forward_message(self.message, self.second_client_socket)
         self.send_board_status(self.second_client_socket)
         coordinates = self.accept_client_move(self.second_client_socket)
         self.message = self.accept_client_chat(self.second_client_socket)
@@ -96,7 +98,7 @@ class Server:
             return True
 
         if self.game.check_if_tie():
-            self.send_tie_message()
+            self.send_winner_message("Tie")
             return True
         return False
 
