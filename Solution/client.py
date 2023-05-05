@@ -75,9 +75,7 @@ class Client:
     # Receives generic message.
     def receive_message(self):
         self.receive_chat_message()
-        data = self.await_response()
-        if data == "Game:":
-            return self.receive_game_directions()
+        return self.receive_game_directions()
 
     # Receives updated game position.
     def receive_game_directions(self):
@@ -116,7 +114,7 @@ class Client:
         self.send_game_coordinates(coordinates)
         self.send_message()
 
-    def await_response(self):
+    def await_server_response(self):
         while True:
             data = self.my_socket.recv(1024).decode()
             if data != "" and data != "Received and Forwarded":
@@ -124,7 +122,7 @@ class Client:
             continue
 
     def initialize_communications(self):
-        data = self.await_response()
+        data = self.await_server_response()
         if data == "Awaiting other client.":
             self.first = True
             while True:

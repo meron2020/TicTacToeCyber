@@ -16,7 +16,6 @@ class Server:
         self.run_game()
 
     def send_board_status(self, socket_to_send):
-        socket_to_send.send("Game:".encode())
         message = pickle.dumps(self.game.board)
         socket_to_send.send((str(len(message)).encode()))
         socket_to_send.send(message)
@@ -30,7 +29,6 @@ class Server:
 
     def send_winner_message(self, winner):
         self.forward_message(self.message, self.first_client_socket)
-        self.first_client_socket.send("Game:".encode())
         message = pickle.dumps("Winner:" + winner)
         self.first_client_socket.send(str(len(message)).encode())
         self.first_client_socket.send(message)
