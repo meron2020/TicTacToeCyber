@@ -29,6 +29,7 @@ class Server:
             continue
 
     def send_winner_message(self, winner):
+        self.forward_message(self.message, self.first_client_socket)
         self.first_client_socket.send("Game:".encode())
         message = pickle.dumps("Winner:" + winner)
         self.first_client_socket.send(str(len(message)).encode())
@@ -85,7 +86,6 @@ class Server:
         self.send_board_status(self.second_client_socket)
         coordinates = self.accept_client_move(self.second_client_socket)
         self.message = self.accept_client_chat(self.second_client_socket)
-        self.forward_message(self.message, self.first_client_socket)
         self.game.add_input(coordinates, "user 2")
         if self.game.check_if_winner("user 2"):
             self.send_winner_message("user 2")

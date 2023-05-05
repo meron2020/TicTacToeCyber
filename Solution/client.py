@@ -14,13 +14,6 @@ class Client:
             self.turn()
             continue
 
-    def await_response(self):
-        while True:
-            data = self.my_socket.recv(1024).decode()
-            if data != "" and data != "Received and Forwarded":
-                return data
-            continue
-
     # Sends game move to server.
     def send_game_coordinates(self, coordinates):
         message = "Game:" + coordinates
@@ -114,7 +107,10 @@ class Client:
                 exit(0)
 
     def turn(self):
-        self.receive_message()
+        winner = self.receive_message()
+        if winner != "No Winner":
+            print("Winner: " + winner)
+            exit()
         self.present_board()
         coordinates = self.get_user_choice()
         self.send_game_coordinates(coordinates)
